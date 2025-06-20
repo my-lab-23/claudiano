@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorMessage = document.getElementById('errorMessage');
     const stats = document.getElementById('stats');
 
+    let loadedAppointments = [];
+    let currentFilter = 'all'; // 'all' o 'future'
+
     // Event listeners
     uploadBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', handleFileSelect);
@@ -54,8 +57,12 @@ document.addEventListener('DOMContentLoaded', function() {
         reader.onload = function(e) {
             try {
                 const jsonData = JSON.parse(e.target.result);
+                loadedAppointments = jsonData;
+                currentFilter = 'all';
                 displayAppointments(jsonData);
                 hideError();
+                setTimeout(setStatsListeners, 0);
+                setActiveStat('statTotali');
             } catch (error) {
                 showError('Errore nel parsing del file JSON. Assicurati che il file sia valido.');
             }
@@ -69,15 +76,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        let filteredAppointments = appointments;
+        if (currentFilter === 'future') {
+            const now = new Date();
+            filteredAppointments = appointments.filter(app => new Date(app.startTime) > now && app.status === 'CONFIRMED');
+        } else if (currentFilter === 'confirmed') {
+            filteredAppointments = appointments.filter(app => app.status === 'CONFIRMED');
+        }
+
         appointmentsGrid.innerHTML = '';
         const unconfirmedGrid = document.getElementById('unconfirmedGrid');
         unconfirmedGrid.innerHTML = '';
         
         // Mostra statistiche
         displayStats(appointments);
+        setStatsListeners();
         
         // Separa gli appuntamenti confermati e non confermati
-        const confirmedAppointments = appointments.filter(app => app.status === 'CONFIRMED');
+        const confirmedAppointments = filteredAppointments.filter(app => app.status === 'CONFIRMED');
+        // Gli unconfirmed sono sempre tutti (non filtrati)
         const unconfirmedAppointments = appointments.filter(app => app.status !== 'CONFIRMED');
         
         // Ordina appuntamenti confermati per data
@@ -102,18 +119,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayStats(appointments) {
         const totalAppointments = appointments.length;
         const confirmedAppointments = appointments.filter(app => app.status === 'CONFIRMED').length;
-        const upcomingAppointments = appointments.filter(app => new Date(app.startTime) > new Date()).length;
+        const upcomingAppointments = appointments.filter(app => new Date(app.startTime) > new Date() && app.status === 'CONFIRMED').length;
 
         stats.innerHTML = `
-            <div class="stat-item">
+            <div class="stat-item" id="statTotali" style="cursor:pointer;">
                 <span class="stat-number">${totalAppointments}</span>
                 <span class="stat-label">Totali</span>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" id="statConfermati" style="cursor:default; opacity:0.7;">
                 <span class="stat-number">${confirmedAppointments}</span>
                 <span class="stat-label">Confermati</span>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" id="statFuturi" style="cursor:pointer;">
                 <span class="stat-number">${upcomingAppointments}</span>
                 <span class="stat-label">Futuri</span>
             </div>
@@ -226,5 +243,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function hideError() {
         errorMessage.style.display = 'none';
+    }
+
+    // Pulsanti filtro tramite stat-item
+    function setStatsListeners() {
+        const statTotali = document.getElementById('statTotali');
+        const statFuturi = document.getElementById('statFuturi');
+        if (statTotali && statFuturi) {
+            statTotali.addEventListener('click', () => {
+                currentFilter = 'all';
+                displayAppointments(loadedAppointments);
+                setActiveStat('statTotali');
+            });
+            statFuturi.addEventListener('click', () => {
+                currentFilter = 'future';
+                displayAppointments(loadedAppointments);
+                setActiveStat('statFuturi');
+            });
+        }
+    }
+    function setActiveStat(id) {
+        ['statTotali','statFuturi'].forEach(statId => {
+            const el = document.getElementById(statId);
+            if (el) el.classList.toggle('active', statId === id);
+        });
+        // Confermati mai attivo né cliccabile
+        const statConfermati = document.getElementById('statConfermati');
+        if (statConfermati) {
+            statConfermati.classList.remove('active');
+            statConfermati.style.cursor = 'default';
+        }
     }
 });

@@ -101,6 +101,12 @@ body {
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
+.upload-btn.active {
+    background: #333;
+    color: #fff;
+    border: 2px solid #764ba2;
+}
+
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -140,6 +146,18 @@ body {
 .stat-label {
     font-size: 0.8rem;
     opacity: 0.9;
+}
+
+.stat-item.active {
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 3px #764ba2;
+    filter: brightness(1.1);
+    transition: box-shadow 0.2s, border 0.2s;
+}
+
+.stat-item:hover {
+    filter: brightness(1.1);
+    cursor: pointer;
 }
 
 .appointments-grid {
